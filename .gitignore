@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+dist/
+build/
+
+# uv
+.uv/
+
+# Local config (contains your personal vault path)
+config.toml
+
+# Index data (your embedded notes live here — never commit)
+.notes_index/
+
+# Claude Code personal/local settings (machine-specific; not shared)
+.claude/settings.local.json
+
+# OS
+.DS_Store

@@ -1,0 +1,33 @@
+# Copy this file to `config.toml` and edit it for your machine.
+#   cp config.example.toml config.toml
+#
+# config.toml is gitignored so your personal vault path never gets committed.
+# Every value here can also be overridden by a command-line flag (see --help).
+
+[vault]
+# Absolute path to the folder containing your Markdown notes (your Obsidian vault).
+# ~ is expanded to your home directory.
+path = "~/Documents/ObsidianVault"
+
+[index]
+# Where the embedded index + change-tracking manifest are stored.
+# Relative paths are resolved against this repo's root.
+dir = ".notes_index"
+
+[chunking]
+# Target chunk size and overlap, measured in characters.
+# ~1000 chars ≈ 250 tokens, a good balance for note-sized passages.
+max_chars = 1000
+overlap_chars = 150
+
+[ollama]
+# Base URL of your local Ollama server.
+host = "http://localhost:11434"
+# Model used to turn text into vectors (must be an embedding model).
+embed_model = "nomic-embed-text"
+# Model used to write answers in RAG mode (any chat model you've pulled).
+chat_model = "llama3.2:3b"
+
+[search]
+# How many chunks to retrieve per query.
+top_k = 6
