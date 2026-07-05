@@ -58,7 +58,7 @@ ollama serve
 
 # 4. Pull the models (first time only)
 ollama pull nomic-embed-text   # embeddings
-ollama pull llama3.2:3b        # answer generation (RAG)
+ollama pull qwen2.5:7b         # answer generation (RAG)
 ```
 
 If you skip step 3 or 4, the tool will tell you exactly which command to run.
@@ -140,9 +140,9 @@ RAM, and latency. Good local options:
 
 | Model            | Size    | Notes                                             |
 |------------------|---------|---------------------------------------------------|
-| `llama3.2:3b`    | ~2 GB   | Default. Fast and light; fine for simple recall.  |
+| `qwen2.5:7b`     | ~4.7 GB | **Default.** Strong instruction-following; great all-rounder. |
+| `llama3.2:3b`    | ~2 GB   | Lighter/faster alternative; fine for simple recall. |
 | `llama3.1:8b`    | ~4.7 GB | Noticeably stronger synthesis.                    |
-| `qwen2.5:7b`     | ~4.7 GB | Strong instruction-following; great all-rounder.  |
 
 Browse more at [ollama.com/library](https://ollama.com/library).
 

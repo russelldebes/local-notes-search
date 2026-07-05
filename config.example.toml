@@ -26,7 +26,7 @@ host = "http://localhost:11434"
 # Model used to turn text into vectors (must be an embedding model).
 embed_model = "nomic-embed-text"
 # Model used to write answers in RAG mode (any chat model you've pulled).
-chat_model = "llama3.2:3b"
+chat_model = "qwen2.5:7b"
 
 [search]
 # How many chunks to retrieve per query.

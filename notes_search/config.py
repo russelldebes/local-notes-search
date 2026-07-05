@@ -27,7 +27,7 @@ class Config:
     overlap_chars: int = 150
     ollama_host: str = "http://localhost:11434"
     embed_model: str = "nomic-embed-text"
-    chat_model: str = "llama3.2:3b"
+    chat_model: str = "qwen2.5:7b"
     top_k: int = 6
     # How many recent Q&A turns to remember in answer mode. 0 disables
     # conversational memory (each question stays fully independent).
@@ -76,7 +76,7 @@ def load_config(vault_override: str | None = None) -> Config:
         overlap_chars=int(chunking.get("overlap_chars", 150)),
         ollama_host=ollama.get("host", "http://localhost:11434"),
         embed_model=ollama.get("embed_model", "nomic-embed-text"),
-        chat_model=ollama.get("chat_model", "llama3.2:3b"),
+        chat_model=ollama.get("chat_model", "qwen2.5:7b"),
         top_k=int(search.get("top_k", 6)),
         history_turns=int(chat.get("history_turns", 6)),
     )

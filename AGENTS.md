@@ -10,7 +10,7 @@ user's machine — notes never leave it.
 
 - **Language / runtime:** Python ≥ 3.11, managed by [`uv`](https://docs.astral.sh/uv/).
 - **Models:** served by a local [Ollama](https://ollama.com) instance.
-  `nomic-embed-text` for embeddings, `llama3.2:3b` for RAG answers (configurable).
+  `nomic-embed-text` for embeddings, `qwen2.5:7b` for RAG answers (configurable).
 - **Vector store:** [LanceDB](https://lancedb.com) — embedded, file-based, no server.
 - **Change tracking:** plain stdlib `sqlite3` manifest (content hashes). No
   loadable SQLite extensions are used (system Python disables them), so it works
