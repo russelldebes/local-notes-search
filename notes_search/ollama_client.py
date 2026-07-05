@@ -64,14 +64,23 @@ class OllamaClient:
 
     # -- chat (RAG) -------------------------------------------------------
 
-    def chat_stream(self, system: str, user: str) -> Iterator[str]:
-        """Stream a chat response token-by-token."""
+    def chat_stream(
+        self, system: str, user: str, history: list[dict] | None = None
+    ) -> Iterator[str]:
+        """Stream a chat response token-by-token.
+
+        `history` is prior conversation turns as message dicts
+        ({"role": "user"|"assistant", "content": ...}), inserted between the
+        system prompt and the current user message so the model can resolve
+        references to earlier turns.
+        """
+        messages = [{"role": "system", "content": system}]
+        if history:
+            messages.extend(history)
+        messages.append({"role": "user", "content": user})
         stream = self._client.chat(
             model=self.chat_model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
+            messages=messages,
             # Low temperature keeps factual recall grounded and consistent
             # rather than creative — this is retrieval, not brainstorming.
             options={"temperature": 0.2},
@@ -81,6 +90,26 @@ class OllamaClient:
             chunk = part.get("message", {}).get("content", "")
             if chunk:
                 yield chunk
+
+    def rewrite_query(self, system: str, user: str) -> str:
+        """Rewrite a follow-up into a standalone search query (non-streaming).
+
+        Uses temperature 0 for a deterministic, literal reformulation, and
+        returns a single cleaned line suitable for embedding.
+        """
+        resp = self._client.chat(
+            model=self.chat_model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            options={"temperature": 0},
+        )
+        text = resp.get("message", {}).get("content", "").strip()
+        # Models sometimes wrap the rewrite in quotes or add a leading label;
+        # take the first non-empty line and strip surrounding quotes.
+        first = next((ln.strip() for ln in text.splitlines() if ln.strip()), "")
+        return first.strip('"\'' + "` ")
 
 
 def _has_model(installed: set[str], wanted: str) -> bool:

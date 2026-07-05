@@ -27,3 +27,28 @@ def build_user_prompt(question: str, hits: list[SearchHit]) -> str:
         f"Notes:\n\n{notes}\n\n"
         f"---\n\nQuestion: {question}"
     )
+
+
+# -- query rewriting (for conversational follow-ups) ----------------------
+
+REWRITE_SYSTEM_PROMPT = (
+    "You rewrite a user's latest message into a single, self-contained search "
+    "query, using the earlier conversation only to resolve references like "
+    "'he', 'that', or 'the second one'. Output ONLY the rewritten query as one "
+    "line — no quotes, no explanation, no label. If the latest message is "
+    "already self-contained, output it unchanged."
+)
+
+
+def build_rewrite_prompt(history: list[dict], question: str) -> str:
+    """Format prior turns + the new question for the rewrite step."""
+    lines = []
+    for msg in history:
+        who = "User" if msg.get("role") == "user" else "Assistant"
+        lines.append(f"{who}: {msg.get('content', '')}")
+    convo = "\n".join(lines)
+    return (
+        f"Conversation so far:\n{convo}\n\n"
+        f"Latest message: {question}\n\n"
+        "Rewritten standalone search query:"
+    )

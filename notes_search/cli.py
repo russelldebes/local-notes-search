@@ -31,7 +31,12 @@ from rich.panel import Panel
 from .config import Config, load_config
 from .indexer import reindex
 from .ollama_client import OllamaClient, OllamaError
-from .rag import SYSTEM_PROMPT, build_user_prompt
+from .rag import (
+    REWRITE_SYSTEM_PROMPT,
+    SYSTEM_PROMPT,
+    build_rewrite_prompt,
+    build_user_prompt,
+)
 from .store import Store
 
 console = Console()
@@ -40,16 +45,39 @@ HELP = """\
 [bold]Commands[/bold]
   [cyan]/answer[/cyan]   generated answer mode (RAG) — the default
   [cyan]/chunks[/cyan]   show raw ranked passages instead of an answer
+  [cyan]/clear[/cyan]    forget the current conversation (start a fresh topic)
   [cyan]/reindex[/cyan]  rescan your vault for new or changed notes
   [cyan]/stats[/cyan]    show how many notes and chunks are indexed
   [cyan]/help[/cyan]     show this help
   [cyan]/quit[/cyan]     exit
 
-Type anything else to search your notes."""
+In answer mode, follow-up questions remember the conversation, so you can ask
+things like "how tall is he?" after asking about someone. Use /clear to reset.
+Chunks mode is a plain, stateless search. Type anything else to search."""
 
 
-def _run_query(cfg: Config, client: OllamaClient, store: Store, mode: str, question: str) -> None:
-    hits = store.search(client.embed_one(question), cfg.top_k)
+def _run_query(
+    cfg: Config,
+    client: OllamaClient,
+    store: Store,
+    mode: str,
+    question: str,
+    history: list[dict],
+) -> None:
+    # In answer mode, resolve conversational follow-ups ("how tall is he?")
+    # into a standalone query BEFORE embedding — otherwise retrieval, which
+    # only sees the literal words, would miss the right notes.
+    search_query = question
+    if mode == "answer" and cfg.history_turns > 0 and history:
+        recent = history[-cfg.history_turns * 2:]
+        rewritten = client.rewrite_query(
+            REWRITE_SYSTEM_PROMPT, build_rewrite_prompt(recent, question)
+        )
+        if rewritten and rewritten.lower() != question.lower():
+            search_query = rewritten
+            console.print(f"[dim]↳ interpreting as: {search_query}[/dim]")
+
+    hits = store.search(client.embed_one(search_query), cfg.top_k)
     if not hits:
         console.print("[yellow]No matches. Have you indexed any notes? Try /reindex.[/yellow]")
         return
@@ -67,20 +95,29 @@ def _run_query(cfg: Config, client: OllamaClient, store: Store, mode: str, quest
             )
         return
 
-    # answer mode (RAG)
-    user_prompt = build_user_prompt(question, hits)
+    # answer mode (RAG). Feed the standalone query as the question (unambiguous
+    # for a small model) plus recent turns for conversational continuity.
+    user_prompt = build_user_prompt(search_query, hits)
+    recent_history = history[-cfg.history_turns * 2:] if cfg.history_turns > 0 else []
     console.print("[dim]thinking…[/dim]")
     parts: list[str] = []
-    for token in client.chat_stream(SYSTEM_PROMPT, user_prompt):
+    for token in client.chat_stream(SYSTEM_PROMPT, user_prompt, history=recent_history):
         parts.append(token)
         console.print(token, end="")
     console.print()  # newline after stream
     sources = sorted({h.path for h in hits})
     console.print(f"\n[dim]Sources: {', '.join(sources)}[/dim]")
 
+    # Record the turn (store what the user actually typed, not the rewrite).
+    if cfg.history_turns > 0:
+        answer = "".join(parts).strip()
+        history.append({"role": "user", "content": question})
+        history.append({"role": "assistant", "content": answer})
+
 
 def _repl(cfg: Config, client: OllamaClient, store: Store) -> None:
     mode = "answer"
+    history: list[dict] = []  # conversation turns for answer mode
     console.print(
         Panel.fit(
             "Ask a question about your notes. [dim]Type /help for commands, /quit to exit.[/dim]",
@@ -111,6 +148,9 @@ def _repl(cfg: Config, client: OllamaClient, store: Store) -> None:
             elif cmd == "chunks":
                 mode = "chunks"
                 console.print("[green]→ chunks mode (raw passages)[/green]")
+            elif cmd == "clear":
+                history.clear()
+                console.print("[green]Conversation cleared.[/green]")
             elif cmd == "reindex":
                 _reindex(cfg, client, store, need_chat=False)
             elif cmd == "stats":
@@ -130,7 +170,7 @@ def _repl(cfg: Config, client: OllamaClient, store: Store) -> None:
                 continue
 
         try:
-            _run_query(cfg, client, store, mode, line)
+            _run_query(cfg, client, store, mode, line, history)
         except Exception as exc:  # keep the REPL alive on per-query errors
             console.print(f"[red]Query failed: {exc}[/red]")
 

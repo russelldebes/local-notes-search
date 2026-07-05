@@ -82,10 +82,18 @@ It indexes any changed notes, then drops you into an interactive prompt:
 | *(type a question)* | search your notes                              |
 | `/answer`  | **default** — RAG: a written answer citing your notes   |
 | `/chunks`  | show the raw ranked passages with scores + sources      |
+| `/clear`   | forget the current conversation (start a fresh topic)   |
 | `/reindex` | rescan the vault for new/changed notes                  |
 | `/stats`   | how many notes and chunks are indexed                   |
 | `/help`    | list commands                                           |
 | `/quit`    | exit (`Ctrl-C` / `Ctrl-D` also work)                    |
+
+In **answer mode**, follow-up questions remember the conversation, so you can ask
+"What about Russell?" and then "How tall is he?" — the tool rewrites the follow-up
+into a standalone query (shown as `↳ interpreting as: …`) before searching. Use
+`/clear` to start a new topic. Tune or disable this with `[chat] history_turns` in
+`config.toml` (set `0` to make every question independent). Chunks mode is a plain,
+stateless search.
 
 ### Just re-index, no prompt
 

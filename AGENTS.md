@@ -71,27 +71,30 @@ Syntax-check without the deps installed: `python3 -m py_compile notes_search/*.p
 - LanceDB delete uses a SQL filter string — single quotes in paths are escaped by
   doubling (`store._escape`). Don't switch to naive string interpolation.
 
-## Conversation state: stateless by design (for now)
+## Conversation state (answer mode is conversational)
 
-Each query is fully independent — there is **no conversation memory** between
-questions. Every question triggers a fresh retrieval, and `chat_stream` sends only
-the system prompt + the current question with its retrieved notes (see
-`ollama_client.py` / `cli.py::_run_query`). Nothing from prior turns is carried
-forward.
+Answer mode remembers the conversation so follow-ups resolve against earlier turns
+("How tall is he?" after "What about Russell?"). The REPL holds a `history` list of
+`{role, content}` turns (`cli.py::_repl`), bounded by `cfg.history_turns` (config
+`[chat] history_turns`, default 6; set 0 to disable and go fully stateless).
 
-Implication: follow-ups that depend on earlier context don't work — e.g. asking
-"How tall is he?" after "What about Russell?" won't resolve "he", and the retrieval
-step won't find the right note either.
+Two-part design — **both parts are required**, don't remove either:
 
-If you add conversational memory later, do it properly: keeping chat history in the
-LLM prompt is not enough, because the **retrieval** step still embeds only the
-literal words. A query-rewrite step (expand the follow-up into a standalone
-question before embedding) is required, plus a `/clear` command to reset context.
-Don't ship history-in-prompt alone — follow-ups will *sound* like they work while
-retrieval silently fails.
+1. **Query rewrite before retrieval** (`ollama_client.rewrite_query` +
+   `rag.build_rewrite_prompt`). Retrieval embeds only literal words, so a raw
+   follow-up like "how tall is he?" would miss the right note. When history exists,
+   the follow-up is first rewritten into a standalone query (temp 0), and *that* is
+   what gets embedded/searched. The rewritten query is shown to the user as
+   `↳ interpreting as: …`.
+2. **History in the generation prompt** (`chat_stream(..., history=...)`) for
+   conversational continuity/tone.
+
+Turns are recorded with the user's *original* wording (not the rewrite). `/clear`
+empties `history`. **Chunks mode is intentionally stateless** — it neither reads nor
+writes history; it's a plain lookup. If you ever ship history-in-prompt without the
+rewrite step, follow-ups will *sound* like they work while retrieval silently fails.
 
 ## Not yet built (open ideas)
 
-Conversational memory (with query-rewrite, per above); one-shot `--query "..."`
-non-interactive mode; `.txt`/other extensions alongside `.md`; reranking;
-configurable `keep_alive`; tests.
+One-shot `--query "..."` non-interactive mode; `.txt`/other extensions alongside
+`.md`; reranking; configurable `keep_alive`; tests.

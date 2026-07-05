@@ -29,6 +29,9 @@ class Config:
     embed_model: str = "nomic-embed-text"
     chat_model: str = "llama3.2:3b"
     top_k: int = 6
+    # How many recent Q&A turns to remember in answer mode. 0 disables
+    # conversational memory (each question stays fully independent).
+    history_turns: int = 6
 
 
 def _expand(path: str) -> Path:
@@ -51,6 +54,7 @@ def load_config(vault_override: str | None = None) -> Config:
     chunking = data.get("chunking", {})
     ollama = data.get("ollama", {})
     search = data.get("search", {})
+    chat = data.get("chat", {})
 
     # Vault path: CLI flag > env var > config file.
     vault_raw = vault_override or os.environ.get("NOTES_VAULT_PATH") or vault.get("path")
@@ -74,4 +78,5 @@ def load_config(vault_override: str | None = None) -> Config:
         embed_model=ollama.get("embed_model", "nomic-embed-text"),
         chat_model=ollama.get("chat_model", "llama3.2:3b"),
         top_k=int(search.get("top_k", 6)),
+        history_turns=int(chat.get("history_turns", 6)),
     )
