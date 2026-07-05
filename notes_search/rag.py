@@ -32,23 +32,32 @@ def build_user_prompt(question: str, hits: list[SearchHit]) -> str:
 # -- query rewriting (for conversational follow-ups) ----------------------
 
 REWRITE_SYSTEM_PROMPT = (
-    "You rewrite a user's latest message into a single, self-contained search "
-    "query, using the earlier conversation only to resolve references like "
-    "'he', 'that', or 'the second one'. Output ONLY the rewritten query as one "
-    "line — no quotes, no explanation, no label. If the latest message is "
-    "already self-contained, output it unchanged."
+    "You rewrite the user's LATEST question into a standalone search query by "
+    "replacing pronouns (he/she/it/they/that/this/his/her/their) with the "
+    "specific noun they refer to, based on the earlier conversation. Keep the "
+    "question otherwise unchanged and keep it phrased as a question. Output ONLY "
+    "the rewritten question — no quotes, no explanation, no label. If the latest "
+    "question has no pronouns to resolve, output it unchanged.\n"
+    "\n"
+    "Example 1:\n"
+    "Earlier conversation:\nUser: What about Russell?\n"
+    "Latest: How tall is he?\nOutput: How tall is Russell?\n"
+    "\n"
+    "Example 2:\n"
+    "Earlier conversation:\nUser: Tell me about the Q3 budget.\n"
+    "Latest: Who approved it?\nOutput: Who approved the Q3 budget?"
 )
 
 
 def build_rewrite_prompt(history: list[dict], question: str) -> str:
-    """Format prior turns + the new question for the rewrite step."""
+    """Format prior turns + the new question for the rewrite step.
+
+    Matches the few-shot layout in REWRITE_SYSTEM_PROMPT so the small model
+    follows the pattern reliably.
+    """
     lines = []
     for msg in history:
         who = "User" if msg.get("role") == "user" else "Assistant"
         lines.append(f"{who}: {msg.get('content', '')}")
     convo = "\n".join(lines)
-    return (
-        f"Conversation so far:\n{convo}\n\n"
-        f"Latest message: {question}\n\n"
-        "Rewritten standalone search query:"
-    )
+    return f"Earlier conversation:\n{convo}\n\nLatest: {question}\nOutput:"
