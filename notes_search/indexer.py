@@ -28,11 +28,20 @@ def _hash(content: str) -> str:
 
 
 def _scan_vault(vault: Path) -> dict[str, Path]:
-    """Map relative-path-string -> absolute Path for every .md file."""
+    """Map relative-path-string -> absolute Path for every .md file.
+
+    Skips any file inside a hidden directory (a path component starting with
+    "."), so Obsidian's `.trash` (deleted notes), `.obsidian` (config/plugins),
+    `.git`, etc. never pollute the index.
+    """
     found: dict[str, Path] = {}
     for p in vault.rglob("*.md"):
-        if p.is_file():
-            found[str(p.relative_to(vault))] = p
+        if not p.is_file():
+            continue
+        rel = p.relative_to(vault)
+        if any(part.startswith(".") for part in rel.parts):
+            continue
+        found[str(rel)] = p
     return found
 
 

@@ -110,6 +110,11 @@ models to use, and how many chunks to retrieve per query. Each value can also be
 overridden by a CLI flag; the vault path additionally honours the
 `NOTES_VAULT_PATH` environment variable.
 
+The vault is scanned recursively, and **hidden folders are skipped** — so
+Obsidian's `.trash` (deleted notes) and `.obsidian` (config/plugins) never end up
+in your index. You can also point the vault path at a parent folder containing
+several vaults to search across all of them at once.
+
 ## Swapping models
 
 There are two models, and they swap differently.

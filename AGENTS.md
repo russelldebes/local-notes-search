@@ -58,6 +58,10 @@ Syntax-check without the deps installed: `python3 -m py_compile notes_search/*.p
   first delete its old chunks (`store.delete_chunks(path)`) to avoid duplicates.
 - Each chunk is prefixed with its note title + heading breadcrumb before
   embedding; this context materially improves retrieval — preserve it.
+- `_scan_vault` skips any `.md` inside a hidden directory (a path component
+  starting with "."). This keeps Obsidian's `.trash` (deleted notes) and
+  `.obsidian` (config/plugins) out of the index. The vault path may point at a
+  parent folder of several vaults — the walk is recursive and combines them.
 
 ## Things that will trip you up
 
