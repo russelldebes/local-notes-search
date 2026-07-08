@@ -14,6 +14,24 @@ SYSTEM_PROMPT = (
 )
 
 
+def build_system_prompt(conventions: str = "") -> str:
+    """Return the answer-mode system prompt, with user conventions appended.
+
+    `conventions` is free-form Markdown describing how *this* user structures
+    their notes (see conventions.example.md). It's optional — when empty the
+    base prompt is returned unchanged. Appending it here (rather than baking it
+    into SYSTEM_PROMPT) keeps the user-specific text out of the repo.
+    """
+    if not conventions.strip():
+        return SYSTEM_PROMPT
+    return (
+        f"{SYSTEM_PROMPT}\n\n"
+        "The user follows these conventions in their notes. Use them to "
+        "interpret structure, dates, and shorthand when answering:\n\n"
+        f"{conventions.strip()}"
+    )
+
+
 def build_user_prompt(question: str, hits: list[SearchHit]) -> str:
     """Assemble the retrieved note excerpts + question into a user message."""
     blocks = []

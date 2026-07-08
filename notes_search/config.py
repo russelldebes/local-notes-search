@@ -17,6 +17,7 @@ from pathlib import Path
 # Repo root = parent of the `notes_search` package directory.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_FILE = REPO_ROOT / "config.toml"
+DEFAULT_CONVENTIONS_FILE = "conventions.md"
 
 
 @dataclass
@@ -32,6 +33,11 @@ class Config:
     # How many recent Q&A turns to remember in answer mode. 0 disables
     # conversational memory (each question stays fully independent).
     history_turns: int = 6
+    # User-specific note conventions, injected into the answer-mode system
+    # prompt so the model understands how *this* user structures their notes
+    # (e.g. a dated "working notes" file with Yesterday/Today sections).
+    # Loaded from conventions_file; empty when that file is absent.
+    conventions: str = ""
 
 
 def _expand(path: str) -> Path:
@@ -69,6 +75,16 @@ def load_config(vault_override: str | None = None) -> Config:
     if not index_dir.is_absolute():
         index_dir = REPO_ROOT / index_dir_raw
 
+    # Optional per-user note conventions. Resolved like index_dir (relative
+    # paths are anchored to the repo root). Missing file = no conventions.
+    conventions_raw = chat.get("conventions_file", DEFAULT_CONVENTIONS_FILE)
+    conventions_path = _expand(conventions_raw)
+    if not conventions_path.is_absolute():
+        conventions_path = REPO_ROOT / conventions_raw
+    conventions = ""
+    if conventions_path.is_file():
+        conventions = conventions_path.read_text(encoding="utf-8").strip()
+
     return Config(
         vault_path=_expand(vault_raw),
         index_dir=index_dir,
@@ -79,4 +95,5 @@ def load_config(vault_override: str | None = None) -> Config:
         chat_model=ollama.get("chat_model", "qwen2.5:7b"),
         top_k=int(search.get("top_k", 6)),
         history_turns=int(chat.get("history_turns", 6)),
+        conventions=conventions,
     )

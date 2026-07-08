@@ -37,3 +37,9 @@ top_k = 6
 # follow-ups like "how tall is he?" resolve against earlier questions.
 # Set to 0 to disable memory and make every question fully independent.
 history_turns = 6
+# Optional Markdown file describing how you structure your notes (e.g. a dated
+# "working notes" journal). Its contents are appended to the answer-mode system
+# prompt so the model interprets your notes correctly. Relative paths resolve
+# against this repo's root. See conventions.example.md; the default file is
+# gitignored. Leave the file absent to send no conventions.
+conventions_file = "conventions.md"

@@ -33,8 +33,8 @@ from .indexer import reindex
 from .ollama_client import OllamaClient, OllamaError
 from .rag import (
     REWRITE_SYSTEM_PROMPT,
-    SYSTEM_PROMPT,
     build_rewrite_prompt,
+    build_system_prompt,
     build_user_prompt,
 )
 from .store import Store
@@ -101,7 +101,8 @@ def _run_query(
     recent_history = history[-cfg.history_turns * 2:] if cfg.history_turns > 0 else []
     console.print("[dim]thinking…[/dim]")
     parts: list[str] = []
-    for token in client.chat_stream(SYSTEM_PROMPT, user_prompt, history=recent_history):
+    system_prompt = build_system_prompt(cfg.conventions)
+    for token in client.chat_stream(system_prompt, user_prompt, history=recent_history):
         parts.append(token)
         console.print(token, end="")
     console.print()  # newline after stream

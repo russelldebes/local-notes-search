@@ -29,7 +29,7 @@ searched, then either shown as ranked passages or fed to the LLM for a cited ans
 | `notes_search/chunker.py` | Markdown-aware chunking: strip frontmatter, track heading breadcrumbs, overlapping windows, prepend title+breadcrumb to each chunk |
 | `notes_search/store.py` | Persistence: LanceDB vectors + sqlite `files` manifest |
 | `notes_search/indexer.py` | Incremental reindex: hash files, (re)embed new/changed, purge deleted |
-| `notes_search/rag.py` | RAG system + user prompt construction |
+| `notes_search/rag.py` | RAG system + user prompt construction (incl. `build_system_prompt`, which appends per-user note conventions) |
 | `notes_search/cli.py` | REPL, slash commands, arg parsing, entry point (`main`) |
 
 ## Running & developing
@@ -65,9 +65,9 @@ Syntax-check without the deps installed: `python3 -m py_compile notes_search/*.p
 
 ## Things that will trip you up
 
-- **`config.toml` and `.notes_index/` are gitignored** — they hold the user's
-  personal vault path and embedded notes. Never commit them. Only
-  `config.example.toml` ships.
+- **`config.toml`, `conventions.md`, and `.notes_index/` are gitignored** — they
+  hold the user's personal vault path, note conventions, and embedded notes.
+  Never commit them. Only `config.example.toml` and `conventions.example.md` ship.
 - **Ollama server must be running** (`ollama serve`) before embed/chat calls.
 - **Environment PATH (this dev machine):** Homebrew lives at `/opt/homebrew/bin`
   but non-interactive shells may not load it. If `uv`/`ollama` are "command not
@@ -97,6 +97,26 @@ Turns are recorded with the user's *original* wording (not the rewrite). `/clear
 empties `history`. **Chunks mode is intentionally stateless** — it neither reads nor
 writes history; it's a plain lookup. If you ever ship history-in-prompt without the
 rewrite step, follow-ups will *sound* like they work while retrieval silently fails.
+
+## Per-user note conventions (injected into the answer prompt)
+
+Users structure their notes idiosyncratically (e.g. a dated "working notes"
+journal with reverse-chronological entries and `Yesterday`/`Today` sections).
+That structure is *user-specific*, so it must not be hardcoded into
+`SYSTEM_PROMPT`. Instead:
+
+- A gitignored `conventions.md` (repo root by default; path via config
+  `[chat] conventions_file`) holds the user's free-form Markdown description.
+  `conventions.example.md` ships as the template.
+- `config.load_config` reads that file into `cfg.conventions` (empty string if
+  absent — the file is genuinely optional).
+- `rag.build_system_prompt(cfg.conventions)` appends it to `SYSTEM_PROMPT`;
+  `cli._run_query` uses the composed prompt for `chat_stream`.
+
+Conventions affect **answer generation only**, not the query-rewrite or
+retrieval steps. Keep it that way unless there's a reason to change it. When
+`conventions` is empty, `build_system_prompt` returns `SYSTEM_PROMPT`
+unchanged — so behavior for users without a `conventions.md` is identical.
 
 ## Not yet built (open ideas)
 

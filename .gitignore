@@ -12,6 +12,9 @@ build/
 # Local config (contains your personal vault path)
 config.toml
 
+# Personal note conventions (injected into the LLM prompt; vault-specific)
+conventions.md
+
 # Index data (your embedded notes live here — never commit)
 .notes_index/
 
